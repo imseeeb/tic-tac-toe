@@ -90,15 +90,18 @@ button:active{
     height: 40px;
 }
 
+button:hover{
+    animation: wiggle 0.5s infinite alternate ease-in-out;
+    animation-delay: -0.25s;
+}
+
 .buttons{
     margin-top: 10px;
     display: flex;
     flex-direction: column;
 }
-
 .inactiveButton{
     pointer-events: none;
-    background-color: rgb(155, 155, 155);
     color: gray;
     border-color: gray;
 }
@@ -109,4 +112,46 @@ button:active{
 
 .playWithPlayer{
     background-color: cornflowerblue;
+}
+
+.winner{
+    position: absolute;
+    margin-bottom: 500px;
+    font-size: 40px;
+    font-family: 'Courier New', Courier, monospace;
+    animation: wiggle 0.3s infinite alternate ease-in-out;
+}
+
+@keyframes wiggle{
+    0% {
+        transform: rotate(-3deg);
+    }
+
+    100%{
+        transform: rotate(3deg);
+    }
+}
+
+svg{
+    position: absolute;
+    pointer-events: none;
+    height: 100%;
+    width: 100%;
+}
+
+line{
+    stroke-width: 5px;
+    stroke: black;
+    stroke-dasharray: 1000;
+    animation: dash 5s linear forwards;
+}
+
+@keyframes dash {
+    0%{
+        stroke-dashoffset: 1000;
+    }
+
+    100%{
+        stroke-dashoffset: 0;
+    }
 }
