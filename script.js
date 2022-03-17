@@ -183,8 +183,8 @@ function aiMove(){
     // [3,4,5]
     // [6,7,8]
 
-    let player = 1,
-        ai = 2;
+    // let player = 1,
+    //     ai = 2;
 
     let winMoves=[
         [0,1,2],
@@ -195,13 +195,11 @@ function aiMove(){
         [2,5,8],
         [0,4,8],
         [2,4,6]
-    ],
+    ];
 
-    opponentState=[],
-    aiState=[];
-    let potentialMoves=[0,0,0];
-    console.log('potentialMoves');
-    console.log(potentialMoves);
+    let opponentState=[];
+    let aiState=[];
+    let potentialMoves=[];
 
     for(i=0; i<9; i++){
         if(TheGame.gameBoard[i]==1){
@@ -209,7 +207,7 @@ function aiMove(){
         }
     }
     console.log('opponentState');
-    console.log(opponentState);
+    console.log(JSON.parse(JSON.stringify(opponentState)));
 
     for(i=0; i<9; i++){
         if(TheGame.gameBoard[i]==2){
@@ -218,12 +216,12 @@ function aiMove(){
     }
 
     console.log('aiState');
-    console.log(aiState);
+    console.log(JSON.parse(JSON.stringify(aiState)));
 
     let movesTaken = opponentState.concat(aiState);
     
     console.log('movesTaken');
-    console.log(movesTaken);
+    console.log(JSON.parse(JSON.stringify(movesTaken)));
 
     for(i=0;i<opponentState.length;i++){
         for(w=0;w<8; w++){
@@ -232,7 +230,7 @@ function aiMove(){
                 if(winMoves[w][m]==opponentState[i]){
                     console.log('asd');
                     potentialMoves.push(winMoves[w]);
-                    console.log(potentialMoves);
+                    console.log(JSON.parse(JSON.stringify(potentialMoves)));
                     break;
                 }
             }
@@ -246,26 +244,41 @@ function aiMove(){
             for(m=0;m<3;m++){
                 if(potentialMoves[t][m]==aiState[a]){
                     indexToSplice.push(t);
+                    console.log('spiiice')
+                    console.log(JSON.parse(JSON.stringify(potentialMoves[t])));
                     break;
                 }
             }
         }
     }
 
-    console.log('indexToSplice');
-    console.log(indexToSplice);
+    console.log('potentialmove');
+    console.log(JSON.parse(JSON.stringify(potentialMoves)));
 
+    console.log('indexToSplice');
+    console.log(JSON.parse(JSON.stringify(indexToSplice)));
+
+    indexToSplice.sort((a,b)=>a-b);
+    indexToSplice = [...new Set(indexToSplice)];
+
+    console.log('indexToSplice');
+    console.log(JSON.parse(JSON.stringify(indexToSplice)));
+
+
+
+    let spliceCount=0;
     for(s=0;s<indexToSplice.length;s++){
-        potentialMoves.splice(s,1);
+        potentialMoves.splice(indexToSplice[s]-spliceCount,1);
+        spliceCount++;
     }
 
     console.log('potentialMoves');
-    console.log(potentialMoves);
+    console.log(JSON.parse(JSON.stringify(potentialMoves)));
 
     let numbersToConsider = [].concat.apply([],potentialMoves);
 
     console.log('numbersToConsider');
-    console.log(numbersToConsider);
+    console.log(JSON.parse(JSON.stringify(numbersToConsider)));
 
     for(u=0; u<movesTaken.length; u++){
         numbersToConsider = numbersToConsider.filter((n)=>{return n !== movesTaken[u]});
@@ -273,7 +286,7 @@ function aiMove(){
 
 
     console.log('numbersToConsider');
-    console.log(numbersToConsider);
+    console.log(JSON.parse(JSON.stringify(numbersToConsider)));
 
 }
 
