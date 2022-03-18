@@ -15,11 +15,25 @@ const TheGame = {
 
     nextTurn(){
         if(this.playerTurn == 1){
+            if(this.gameMode == 0){
+                this.playerTurn = 2;
+                boardDOM.removeEventListener('click', placeMark);
+                let position = aiMove();
+                let selectedDiv = document.querySelectorAll('.board>div')[position];
+
+                placeMark(undefined,selectedDiv);
+                return;
+            }
+
             this.playerTurn = 2;
             return
         }
 
         else if(this.playerTurn == 2){
+            if(this.gameMode == 0){
+                boardDOM.addEventListener('click', placeMark);
+            }
+
             this.playerTurn = 1;
             return
         }
@@ -98,34 +112,42 @@ let boardDOM = document.querySelector('.board'),
 playVsComp.addEventListener('click', ()=>{TheGame.newGame(0)});
 playVsPlay.addEventListener('click',()=>{TheGame.newGame(1)});
 
-function placeMark(e){
-    if(e.target.parentNode.className != 'board' ||
-    e.target.innerHTML != '') return
+function placeMark(e,efromAi){
+    let selectedDiv;
+    if(typeof(e) === 'undefined'){
+        selectedDiv = efromAi;
+    }
+    else{
+        selectedDiv = e.target;
+    }
 
-    let position = Array.from(e.target.parentNode.children).indexOf(e.target);
+    if(selectedDiv.parentNode.className != 'board' ||
+    selectedDiv.innerHTML != '') return
+
+    let position = Array.from(selectedDiv.parentNode.children).indexOf(selectedDiv);
     let turnHolder = TheGame.playerTurn;
 
-    e.target.classList.add('animateFlip');
+    selectedDiv.classList.add('animateFlip');
     boardDOM.removeEventListener('click', placeMark);
 
     //sync letter placement with animation at 90deg
     setTimeout( ()=>{
         if (turnHolder == 1){
-            e.target.innerHTML = '◯';
+            selectedDiv.innerHTML = '◯';
         }
         if (turnHolder == 2){
-            e.target.innerHTML = '✕';
+            selectedDiv.innerHTML = '✕';
         }
     }, 250);
 
     setTimeout( ()=>{
-        e.target.classList.remove('animateFlip');
+        selectedDiv.classList.remove('animateFlip');
         boardDOM.addEventListener('click', placeMark);
-    }, 500)
 
-    TheGame.storeToArray(turnHolder, position);
-    TheGame.checkResult();
-    TheGame.nextTurn();
+        TheGame.storeToArray(turnHolder, position);
+        TheGame.checkResult();
+        TheGame.nextTurn();
+    }, 500)
 }
 
 function clearBoard(){
@@ -179,13 +201,25 @@ function drawCrossOut(from, to){
 }
 
 function aiMove(){
+
+    function findCommonElement(array1, array2) {
+        let matchCounter = 0;
+        for(let i =  0; i < array1.length; i++) {
+            for(let j = 0; j < array2.length; j++) {   
+                if(array1[i] == array2[j]) {
+                    matchCounter+=1;
+                }
+            }
+        }
+        return matchCounter;
+    }
+
+    let player = 1,
+        ai = 2;
+
     // [0,1,2]
     // [3,4,5]
     // [6,7,8]
-
-    // let player = 1,
-    //     ai = 2;
-
     let winMoves=[
         [0,1,2],
         [3,4,5],
@@ -197,97 +231,119 @@ function aiMove(){
         [2,4,6]
     ];
 
-    let opponentState=[];
-    let aiState=[];
+    let playerMoves=[];
+    let aiMoves=[];
+
+    //find which moves the player (1s) has already made and save to playerMoves[]
+    for(i=0; i<9; i++){
+        if(TheGame.gameBoard[i]==player){
+            playerMoves.push(i);
+        }
+    }
+
+    //find which moves the ai (2s) has already made and save to aiMoves[]
+    for(i=0; i<9; i++){
+        if(TheGame.gameBoard[i]==ai){
+            aiMoves.push(i);
+        }
+    }
+
+    //combine player moves  and ai moves to movesTaken[]
+    let movesTaken = playerMoves.concat(aiMoves);
+
+    //based on the moves already made find if you have an opportunity to attack / finish your pattern
+    for(i=0;i<winMoves.length;i++){
+        let matchCounter = findCommonElement(winMoves[i],aiMoves);
+        if (matchCounter == 2){ //if 2 out of 3 match react
+            if(findCommonElement(winMoves[i],playerMoves)==0){ //check if opponent is not blocking your attack attempt
+                let letsFinishThatHuman = winMoves[i];
+
+                for(u=0; u<movesTaken.length; u++){ //filter out the unavailable moves (the ones that are already taken)
+                    letsFinishThatHuman = letsFinishThatHuman.filter((n)=>{return n !== movesTaken[u]});
+                }
+
+                return letsFinishThatHuman[0]
+            }
+        }
+    }   
+
+    //based on the moves already made check if you have to defend / prevent opponent from finishing pattern in that round
+    for(i=0;i<winMoves.length;i++){
+        let matchCounter = findCommonElement(winMoves[i],playerMoves);
+        if (matchCounter == 2){ //if 2 out of 3 match react
+            if(findCommonElement(winMoves[i],aiMoves)==0){ //check if it's already defended 
+                let defend = winMoves[i];
+
+                for(u=0; u<movesTaken.length; u++){ //filter out the unavailable moves (the ones that are already taken)
+                    defend = defend.filter((n)=>{return n !== movesTaken[u]});
+                }
+
+                return defend[0]
+            }
+        }
+    }    
+
+    //based on the moves already made find which winning moves is the opponent getting close to achieving
     let potentialMoves=[];
 
-    for(i=0; i<9; i++){
-        if(TheGame.gameBoard[i]==1){
-            opponentState.push(i);
-        }
-    }
-    console.log('opponentState');
-    console.log(JSON.parse(JSON.stringify(opponentState)));
-
-    for(i=0; i<9; i++){
-        if(TheGame.gameBoard[i]==2){
-            aiState.push(i);
+    for(i=0;i<winMoves.length;i++){
+        let matchCounter = findCommonElement(winMoves[i],playerMoves);
+        for(let m = 0; m<matchCounter; m++){
+            potentialMoves.push(winMoves[i]);
+            potentialMoves.push(winMoves[i]); //doubled just to give higher weight to defending against player potential movements rather than figuring out attacks in empty spots
         }
     }
 
-    console.log('aiState');
-    console.log(JSON.parse(JSON.stringify(aiState)));
-
-    let movesTaken = opponentState.concat(aiState);
-    
-    console.log('movesTaken');
-    console.log(JSON.parse(JSON.stringify(movesTaken)));
-
-    for(i=0;i<opponentState.length;i++){
-        for(w=0;w<8; w++){
-            for(m=0;m<3;m++){
-                console.log(winMoves[w]);
-                if(winMoves[w][m]==opponentState[i]){
-                    console.log('asd');
-                    potentialMoves.push(winMoves[w]);
-                    console.log(JSON.parse(JSON.stringify(potentialMoves)));
-                    break;
-                }
-            }
+    //consider also the available win combination that haven't got started yet (find empty winable combinations)
+    for(i=0;i<winMoves.length;i++){
+        if(findCommonElement(winMoves[i],movesTaken) === 0){
+            potentialMoves.push(winMoves[i]);
         }
     }
 
+    //remove from consideration opponent's wining combinations that are already blocked by AI position
     let indexToSplice = []
 
-    for(a=0;a<aiState.length;a++){
-        for(t=0;t<potentialMoves.length;t++){
-            for(m=0;m<3;m++){
-                if(potentialMoves[t][m]==aiState[a]){
-                    indexToSplice.push(t);
-                    console.log('spiiice')
-                    console.log(JSON.parse(JSON.stringify(potentialMoves[t])));
-                    break;
-                }
-            }
+    for (let p = 0; p<potentialMoves.length; p++){
+        if(findCommonElement(potentialMoves[p],aiMoves)>0){
+            indexToSplice.push(p);
         }
     }
 
-    console.log('potentialmove');
-    console.log(JSON.parse(JSON.stringify(potentialMoves)));
+    indexToSplice.sort((a,b)=>b-a); // order descending to prevent index problems when using splice
 
-    console.log('indexToSplice');
-    console.log(JSON.parse(JSON.stringify(indexToSplice)));
-
-    indexToSplice.sort((a,b)=>a-b);
-    indexToSplice = [...new Set(indexToSplice)];
-
-    console.log('indexToSplice');
-    console.log(JSON.parse(JSON.stringify(indexToSplice)));
-
-
-
-    let spliceCount=0;
-    for(s=0;s<indexToSplice.length;s++){
-        potentialMoves.splice(indexToSplice[s]-spliceCount,1);
-        spliceCount++;
+    for(let s=0; s<indexToSplice.length; s++){
+        potentialMoves.splice(indexToSplice[s],1);
     }
 
-    console.log('potentialMoves');
-    console.log(JSON.parse(JSON.stringify(potentialMoves)));
-
+    //break the array of arrays into array of individual numbers
     let numbersToConsider = [].concat.apply([],potentialMoves);
 
-    console.log('numbersToConsider');
-    console.log(JSON.parse(JSON.stringify(numbersToConsider)));
-
+    //filter out the unavailable moves (the ones that are already taken by someone)
     for(u=0; u<movesTaken.length; u++){
         numbersToConsider = numbersToConsider.filter((n)=>{return n !== movesTaken[u]});
     }
 
+    //distribute the considered positions' numbers to an array based on how frequent they were suggested to make
+    let frequencyArray = [0,0,0,0,0,0,0,0,0];
+    for(i=0;i<9;i++){
+        for(n=0;n<numbersToConsider.length;n++){
+            if(numbersToConsider[n]==i){
+                frequencyArray[i]=frequencyArray[i]+1;
+            }
+        }
+    }
 
-    console.log('numbersToConsider');
-    console.log(JSON.parse(JSON.stringify(numbersToConsider)));
+    //find the most suggested number
+    let finalChoice = [];
+    let max = Math.max(...frequencyArray);
 
+    for(f=0;f<frequencyArray.length;f++){
+        if(frequencyArray[f]==max){
+            finalChoice.push(f);
+        }
+    }
+
+    //make a move
+    return finalChoice[0];
 }
-
-let asd=[]
